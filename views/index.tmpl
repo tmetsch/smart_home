@@ -1,0 +1,29 @@
+% rebase('base.tmpl', title='Smart home')
+<script type='text/javascript'>
+window.onload = function() {
+    % for item in titles:
+    var {{item}} = document.getElementById('{{item}}').getContext('2d');
+
+    var myLineChart = new Chart({{item}}, {
+        type: 'line',
+        data: {{!datasets[item]}},
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+        }
+    });
+    % end
+
+}
+</script>
+<div class="box">
+    % for item in titles:
+        <h2>{{item}}</h2>
+        <div class="chartcontainer">
+            <canvas id="{{item}}"></canvas>
+        </div>
+    % end
+    <p>
+        <small>Current time {{time}}</small>
+    </p>
+</div>

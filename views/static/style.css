@@ -1,0 +1,28 @@
+body {
+    font-family: "Open Sans", Verdana, sans-serif;
+    font-size: 1.1em;
+    line-height: 1.8em;
+    padding: 0;
+    margin: 0;
+    background-color: #fafafb;
+}
+header {
+    background-color: #444;
+    padding: 0.5em;
+}
+a {
+    color: #95b143;
+    text-decoration: none;
+}
+h1, h2, h3 {
+    font-size: 1.2em;
+}
+.content {
+    padding: 1em;
+}
+.chartcontainer {
+    position: relative;
+    height: 25vh;
+    width: 80vw;
+    margin: 1em auto;
+}

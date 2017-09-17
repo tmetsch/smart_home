@@ -1,0 +1,7 @@
+.idea/
+**/*.pyc
+.coverage
+*.pem*
+*.sqlite3
+*.cfg
+setup.md
