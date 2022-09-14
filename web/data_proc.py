@@ -8,7 +8,7 @@ import sqlite3
 import pandas as pd
 
 
-class SensorFactory(object):
+class SensorFactory:
     """
     Factory for loading SensorData objects.
     """
@@ -25,7 +25,7 @@ class SensorFactory(object):
         conn = sqlite3.connect(self.database)
         tmp = conn.execute('SELECT name from sqlite_master WHERE type="table"')
         sensor_names = tmp.fetchall()
-        logging.debug('Found following sensor information: ' +
+        logging.debug('Found following sensor information: %s',
                       repr(sensor_names))
         conn.close()
 
@@ -35,7 +35,7 @@ class SensorFactory(object):
         return res
 
 
-class SensorData(object):
+class SensorData:
     """
     Wrapper for easy access to sensor data.
     """
@@ -45,22 +45,20 @@ class SensorData(object):
         self.conn = sqlite3.connect(database)
         self.resample = resample
 
-    def get_data(self, start, end, resample=True, round=2):
+    def get_data(self, start, end, resample=True, round_digits=2):
         """
         Retrieve data over a time window bound by start and end.
         """
         # the column names
-        tmp = 'pragma table_info({})'.format(self.name)
+        tmp = f'pragma table_info({self.name})'
         res = self.conn.execute(tmp)
         columns = []
         for item in res.fetchall()[1:]:
             columns.append(item[1])  # name of the column
 
         # the values
-        tmp = 'SELECT * FROM {} WHERE ' \
-              'timestamp > {} AND timestamp <= {}'.format(self.name,
-                                                          int(start),
-                                                          int(end))
+        tmp = f'SELECT * FROM {self.name} WHERE ' \
+              f'timestamp > {int(start)} AND timestamp <= {int(end)}'
         dataframe = pd.read_sql_query(tmp, self.conn, index_col='timestamp')
         dataframe.index = pd.to_datetime(dataframe.index.values.astype(float),
                                          unit='s',
@@ -68,8 +66,17 @@ class SensorData(object):
         dataframe.sort_index(inplace=True)
         if resample:
             dataframe = dataframe.resample(self.resample).bfill()
-        dataframe = dataframe.round(round)
+        dataframe = dataframe.round(round_digits)
         return dataframe
+
+
+def _calc_tau(row):
+    if 'humidity' in row.keys() and 'temperature' in row.keys():
+        hum = row['humidity']
+        temp = row['temperature']
+        return (hum / 100) ** (1 / 8.02) * (109.8 + temp) - 109.8
+    else:
+        return -1.0
 
 
 def get_data(database, start, end, sample_rate):
@@ -81,24 +88,24 @@ def get_data(database, start, end, sample_rate):
 
     res = {}
 
-    for sensor in sensors:
-        tmp = sensors[sensor].get_data(start, end)
-        colums = set(sorted(tmp.columns.tolist()))
-        for column in colums:
-            s = tmp[column]
+    for key, item in sensors.items():
+        tmp = item.get_data(start, end)
+        tmp['tau'] = tmp.apply(lambda row: _calc_tau(row), axis=1)
+        columns = list(sorted(tmp.columns.tolist()))
+        for column in columns:
+            series = tmp[column]
             if column not in res:
-                res[column] = pd.DataFrame(s.tolist(),
-                                           columns=[sensor],
-                                           index=s.index)
+                res[column] = pd.DataFrame(series.tolist(),
+                                           columns=[key],
+                                           index=series.index)
             else:
                 res[column] = pd.concat((res[column],
-                                         s.rename(sensor)),
+                                         series.rename(key)),
                                         axis=1,
                                         join='outer')
-                pass
 
-    for item in res:
-        res[item].fillna(method='ffill')
-        res[item].dropna(axis=0)
+    for _, val in res.items():
+        val.fillna(method='ffill', inplace=True)
+        val.dropna(axis=0, inplace=True)
 
     return res

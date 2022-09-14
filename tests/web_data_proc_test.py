@@ -51,8 +51,8 @@ class SensorFactoryTest(unittest.TestCase):
         tmp = self.cut.get_sensors()
         self.assertTrue(len(tmp), 1)
         self.assertEqual(tmp['testus'].name, 'testus')
-        for item in tmp:
-            self.assertIsInstance(tmp[item], data_proc.SensorData)
+        for _, item in tmp.items():
+            self.assertIsInstance(item, data_proc.SensorData)
 
 
 class SensorDataTest(unittest.TestCase):
@@ -111,7 +111,7 @@ class GetDataTest(unittest.TestCase):
     """
 
     def setUp(self):
-        tmp1 = {'temp': 10, 'hum': 12}
+        tmp1 = {'temperature': 10, 'humidity': 12}
         tmp2 = {'pressure': 10}
         sensor1 = DummySensor('test1', 'temp.db', runtime=1, data=tmp1)
         sensor2 = DummySensor('test2', 'temp.db', runtime=1, data=tmp1)
@@ -154,19 +154,20 @@ class GetDataTest(unittest.TestCase):
         tmp = data_proc.get_data('temp.db', start, end, '1Min')
 
         # get_data should group stuff together.
-        self.assertTrue(len(tmp) == 3)  # 3 groups
-        self.assertIn('temp', tmp)
-        self.assertIn('hum', tmp)
+        self.assertTrue(len(tmp) == 4)  # 4 groups
+        self.assertIn('temperature', tmp)
+        self.assertIn('humidity', tmp)
         self.assertIn('pressure', tmp)
+        self.assertIn('tau', tmp)
 
-        self.assertIn('test1', tmp['temp'])
-        self.assertIn('test2', tmp['temp'])
-        self.assertIn('test1', tmp['hum'])
-        self.assertIn('test2', tmp['hum'])
+        self.assertIn('test1', tmp['temperature'])
+        self.assertIn('test2', tmp['temperature'])
+        self.assertIn('test1', tmp['humidity'])
+        self.assertIn('test2', tmp['humidity'])
         self.assertIn('test3', tmp['pressure'])
 
-        for item in tmp:
-            self.assertIsInstance(tmp[item], pd.DataFrame)
+        for _, item in tmp.items():
+            self.assertIsInstance(item, pd.DataFrame)
 
 
 class DummySensor(threading.Thread):
@@ -175,7 +176,7 @@ class DummySensor(threading.Thread):
     """
 
     def __init__(self, name, database, runtime=3, data=None):
-        super(DummySensor, self).__init__()
+        super().__init__()
         self.name = name
         self.database = database
         self.runtime = runtime

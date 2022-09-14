@@ -50,7 +50,7 @@ class DbWrapperTest(unittest.TestCase):
         tmp = cur.execute('PRAGMA table_info(testus);')
         tmp = tmp.fetchall()
 
-        self.assertEquals(tmp[0][2], 'INTEGER')  # timestamp
-        self.assertEquals(tmp[1][2], 'INTEGER')  # metric3
-        self.assertEquals(tmp[2][2], 'TEXT')  # metric2
-        self.assertEquals(tmp[3][2], 'REAL')  # metric1
+        self.assertEqual(tmp[0][2], 'INTEGER')  # timestamp
+        self.assertEqual(tmp[1][2], 'REAL')  # metric3
+        self.assertEqual(tmp[2][2], 'TEXT')  # metric2
+        self.assertEqual(tmp[3][2], 'INTEGER')  # metric1

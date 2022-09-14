@@ -13,7 +13,7 @@ from web import data_proc
 PASSPHRASE = os.urandom(2048)
 
 
-class MainApp(object):
+class MainApp:
     """
     The main WSGI web app.
     """
@@ -74,9 +74,9 @@ class MainApp(object):
 
             titles = []
             datasets = {}
-            for item in data:
-                titles.append(item)
-                temp = data[item]
+            for key, val in data.items():
+                titles.append(key)
+                temp = val
                 data1 = {'labels': [str(x) for x in
                                     temp.index.strftime('%H:%M:%S').tolist()],
                          'datasets': []}
@@ -88,13 +88,12 @@ class MainApp(object):
                               'borderColor': colors[i]}
                     data1['datasets'].append(series)
                     i += 1
-                datasets[item] = data1
+                datasets[key] = data1
 
             return {'titles': titles,
                     'datasets': datasets,
                     'time': str(datetime.datetime.fromtimestamp(end))}
-        else:
-            return bottle.redirect("/login")
+        return bottle.redirect("/login")
 
     def _static(self, filename):
         username = bottle.request.get_cookie("account", secret=PASSPHRASE)
@@ -102,5 +101,4 @@ class MainApp(object):
             return bottle.static_file(filename, root='views/static/')
         elif filename == 'style.css':
             return bottle.static_file(filename, root='views/static/')
-        else:
-            return bottle.redirect("/login")
+        return bottle.redirect("/login")

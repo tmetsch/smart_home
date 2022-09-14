@@ -25,12 +25,12 @@ class SecureServerAdapter(bottle.ServerAdapter):
     Wraps SSL around the socket connection.
     """
     def __init__(self, key_file, cert_file,
-                 host='0.0.0.0', port=8080, **options):
-        super(SecureServerAdapter, self).__init__(host, port, **options)
+                 host='0.0.0.0', port=443, **options):
+        super().__init__(host, port, **options)
         self.key = key_file
         self.cert = cert_file
 
-    def run(self, app):
+    def run(self, handler):
         """
         Run the WSGI server.
         """
@@ -39,7 +39,7 @@ class SecureServerAdapter(bottle.ServerAdapter):
 
         srv = simple_server.make_server(self.host,
                                         self.port,
-                                        app,
+                                        handler,
                                         server_cls,
                                         handler_cls)
         srv.socket = ssl.wrap_socket(srv.socket,

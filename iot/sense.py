@@ -4,7 +4,7 @@ Module containing all sensors.
 
 import datetime
 import json
-import httplib
+import http.client
 import time
 import threading
 import traceback
@@ -20,7 +20,7 @@ except ImportError:
     logging.error('GPIO not available...')
 
 
-class DbWrapper(object):
+class DbWrapper:
     """
     Base sensor class - provides DB abstraction.
     """
@@ -41,33 +41,33 @@ class DbWrapper(object):
         conn = sqlite3.connect(self.database)
         cur = conn.cursor()
 
-        tmp = cur.execute('SELECT name from sqlite_master '
-                          'WHERE type="table" AND name="{}"'.format(self.name))
+        tmp = cur.execute(f'SELECT name from sqlite_master '
+                          f'WHERE type="table" AND name="{self.name}"')
 
         # create table if needed.
         if len(tmp.fetchmany()) == 0:
-            tmp = 'CREATE TABLE {} (timestamp INTEGER'.format(self.name)
+            tmp = f'CREATE TABLE {self.name} (timestamp INTEGER'
             for item in data.keys():
                 typo = 'TEXT'
                 if isinstance(data[item], float):
                     typo = 'REAL'
                 elif isinstance(data[item], int):
                     typo = 'INTEGER'
-                tmp += ', {} {}'.format(item, typo)
+                tmp += f', {item} {typo}'
             tmp += ', CONSTRAINT ts_unique UNIQUE (timestamp) )'
-            logging.debug('Creating table: ' + repr(tmp))
+            logging.debug('Creating table: %s.', repr(tmp))
             cur.execute(tmp)
 
         # insert data
         timestamp = time.mktime(timestamp.timetuple())
 
-        tmp = 'INSERT INTO {} VALUES ({}'.format(self.name, timestamp)
+        tmp = f'INSERT INTO {self.name} VALUES ({timestamp}'
         for item in data.values():
             if isinstance(item, str):
                 item = '"' + item + '"'
-            tmp += ', {}'.format(item)
+            tmp += f', {item}'
         tmp += ')'
-        logging.debug('Adding data: ' + repr(tmp))
+        logging.debug('Adding data: %s.', repr(tmp))
         cur.execute(tmp)
         cur.close()
 
@@ -80,7 +80,7 @@ class DHT22Sensor(threading.Thread):
     """
 
     def __init__(self, name, database, sleep=300, dht=22, gpio=14):
-        super(DHT22Sensor, self).__init__()
+        super().__init__()
         self.name = name
         self.database = database
         self.stop = False
@@ -95,9 +95,8 @@ class DHT22Sensor(threading.Thread):
         humidity, temperature = Adafruit_DHT.read_retry(self.dht, self.gpio)
         if humidity is not None and temperature is not None:
             return temperature, humidity
-        else:
-            logging.warn(self.name + ' - values are -1.')
-            return -1, -1
+        logging.warning('%s - values are -1.', self.name)
+        return -1, -1
 
     def run(self):
         if PI:
@@ -113,7 +112,7 @@ class DHT22Sensor(threading.Thread):
                               repr([temp, humidity]))
                 time.sleep(self.sleep)
         else:
-            logging.warn('Adafruit N/A; or not running on pi...')
+            logging.warning('Adafruit N/A; or not running on pi...')
 
 
 class OutdoorWeather(threading.Thread):
@@ -122,7 +121,7 @@ class OutdoorWeather(threading.Thread):
     """
 
     def __init__(self, name, database, city_id, app_id, sleep=600):
-        super(OutdoorWeather, self).__init__()
+        super().__init__()
         self.name = name
         self.database = database
         self.stop = False
@@ -139,11 +138,10 @@ class OutdoorWeather(threading.Thread):
         temp = -1
         hum = -1
         try:
-            conn = httplib.HTTPConnection('api.openweathermap.org')
+            conn = http.client.HTTPConnection('api.openweathermap.org')
             conn.request('GET',
-                         '/data/2.5/weather?'
-                         'id={}&'
-                         'APPID={}'.format(self.city_id, self.app_id))
+                         f'/data/2.5/weather?id='
+                         f'{self.city_id}&APPID={self.app_id}')
             result = conn.getresponse()
 
             if result.status == 200:
@@ -152,7 +150,7 @@ class OutdoorWeather(threading.Thread):
                 temp = float(data['main']['temp']) - 273.15
                 hum = float(data['main']['humidity'])
         except:
-            logging.warn(self.name + ' - values are -1.')
+            logging.warning('%s - values are -1.', self.name)
             traceback.print_exc()
         finally:
             conn.close()
